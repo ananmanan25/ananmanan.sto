@@ -1,116 +1,117 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 1. YOUR FIREBASE CONFIG
+const firebaseConfig = {
+    apiKey: "AIzaSyCYLMXUCC6t-zT4CeFHBG7OMMwUNDhA8i0",
+    authDomain: "ananmanan-2412c.firebaseapp.com",
+    projectId: "ananmanan-2412c",
+    storageBucket: "ananmanan-2412c.firebasestorage.app",
+    messagingSenderId: "244268274543",
+    appId: "1:244268274543:web:10d1e2ccb230d660d8ce9a",
+};
+
+// 2. INITIALIZE FIREBASE
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 3. LIVE PRODUCT LOADING (REPLACES THE HARD-CODED ARRAY)
+let products = [];
+
+function loadLiveProducts() {
+    const shopGrid = document.querySelector('.shop-grid');
+    
+    // This listens for changes in your Firebase Database
+    onSnapshot(collection(db, "products"), (snapshot) => {
+        products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        if (shopGrid) {
+            shopGrid.innerHTML = products.map(p => `
+                <div class="product-card" onclick="openProductModal('${p.name}', ${p.price}, ${JSON.stringify(p.images).replace(/"/g, '&quot;')}, '${p.code}')">
+                    <div class="image-box">
+                        <img src="${p.images[0]}" alt="${p.name}">
+                    </div>
+                    <div class="info">
+                        <h3>${p.name}</h3>
+                        <div class="price">Rs. ${p.price}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    });
+}
+
 /* ===================== GLOBAL VARIABLES ===================== */
-const products = [
-  { name: 'Strange-Things', price: 4500, images: ['i/v.png', 'i/v.png', 'i/v.png'], code: 'Strange-Things' },
-  { name: 'Solo-Leveling', price: 4350, images: ['i/v (2).jpg', 'i/v (2).jpg', 'i/v (2).jpg'], code: 'Solo-Leveling 1' },
-  { name: 'Solo-Leveling', price: 4350, images: ['i/v (3).jpg', 'i/v (3).jpg', 'i/v (3).jpg'], code: 'Solo-Leveling 2' },
-  { name: 'Samurai', price: 2950, images: ['i/c (15).jpg', 'i/c (15).jpg', 'i/c (15).jpg'], code: 'AM09' },
-  { name: 'Samurai', price: 2950, images: ['i/c (16).jpg', 'i/c (16).jpg', 'i/c (16).jpg'], code: 'AM01' },
-  { name: 'Naruto', price: 2800, images: ['i/c (17).jpg', 'i/c (17).jpg', 'i/c (17).jpg'], code: 'AM03' },
-  { name: 'Naruto', price: 2800, images: ['i/c (18).jpg', 'i/c (18).jpg', 'i/c (18).jpg'], code: 'AM10' },
-  { name: 'k-samurai', price: 2800, images: ['i/c (19).jpg', 'i/c (19).jpg', 'i/c (19).jpg'], code: 'AM04' },
-  { name: 'Pink-Panther', price: 2850, images: ['i/c (11).jpg', 'i/c (11).jpg', 'i/c (11).jpg'], code: 'AM11' },
-  { name: 'Pink-Panther', price: 2850, images: ['i/c (12).jpg', 'i/c (12).jpg', 'i/c (12).jpg'], code: 'AM012' },
-  { name: 'Pink-Panther', price: 2850, images: ['i/c (13).jpg', 'i/c (13).jpg', 'i/c (13).jpg'], code: 'AM05' },
-  { name: 'East-Coast', price: 3250, images: ['i/c (9).jpg', 'i/c (9).jpg', 'i/c (9).jpg'], code: 'AM06' },
-  { name: 'Tote-bag', price: 1500, images: ['i/ddd.png', 'i/ddd.png', 'i/ddd.png'], code: 'AM08' }
-];
-const cursor = document.getElementById('custom-cursor');
-const dot = document.getElementById('cursor-dot');
-const grid = document.getElementById("shopGrid");
+const cursor = document.getElementById("custom-cursor");
+const dot = document.getElementById("cursor-dot");
 let slides = document.querySelectorAll(".slide");
-let slideIndex = 0; 
+let slideIndex = 0;
 let cart = [];
 const shippingFee = 0;
 
 /* ===================== CUSTOM CURSOR ===================== */
-document.addEventListener('mousemove', (e) => {
-    if (cursor && dot) {
-        cursor.style.left = e.clientX + 'px';
-        cursor.style.top = e.clientY + 'px';
-        dot.style.left = e.clientX + 'px';
-        dot.style.top = e.clientY + 'px';
-    }
-});
-
-const interactiveElements = document.querySelectorAll('button, a, .product-card, select');
-interactiveElements.forEach(el => {
-    el.addEventListener('mouseenter', () => cursor.classList.add('cursor-grow'));
-    el.addEventListener('mouseleave', () => cursor.classList.remove('cursor-grow'));
+document.addEventListener("mousemove", (e) => {
+  if (cursor && dot) {
+    cursor.style.left = e.clientX + "px";
+    cursor.style.top = e.clientY + "px";
+    dot.style.left = e.clientX + "px";
+    dot.style.top = e.clientY + "px";
+  }
 });
 
 /* ===================== HERO SLIDER ===================== */
 setInterval(() => {
-    if (slides.length > 0) {
-        slides[slideIndex].classList.remove("active");
-        slideIndex = (slideIndex + 1) % slides.length;
-        slides[slideIndex].classList.add("active");
-    }
+  if (slides.length > 0) {
+    slides[slideIndex].classList.remove("active");
+    slideIndex = (slideIndex + 1) % slides.length;
+    slides[slideIndex].classList.add("active");
+  }
 }, 4000);
 
-/* ===================== VISION TYPEWRITER ===================== */
-const visionText = "Ananmanan is more than a clothing brand\n\" it’s a lifestyle for travelers, dreamers, and adventurers. Our collections blend modern streetwear with bold, futuristic designs, crafted for comfort, versatility, and self-expression. Every piece is made to move with you—whether exploring cities, chasing sunsets, or creating unforgettable memories. We celebrate individuality, freedom, and the thrill of the journey. Ananmanan empowers you to stand out, embrace your path, and share your story with the world. Step into style that reflects your bold spirit and limitless adventures...";
-
-let visionIndex = 0; 
-const typingSpeed = 40; 
-
-function typeVision() {
-    const container = document.getElementById("typewriter-paragraph");
-    if (container && visionIndex < visionText.length) {
-        container.innerHTML += visionText.charAt(visionIndex);
-        visionIndex++;
-        setTimeout(typeVision, typingSpeed);
-    }
-}
-
 /* ===================== INITIALIZATION ===================== */
-window.addEventListener('load', () => {
-    setTimeout(typeVision, 500);
-    updateCartUI();
+window.addEventListener("load", () => {
+  loadLiveProducts(); // Start loading from Firebase
+  updateCartUI();
 });
 
 /* ===================== CART LOGIC ===================== */
-function toggleCart() {
-    document.getElementById("cartDrawer").classList.toggle("open");
+window.toggleCart = function() {
+  document.getElementById("cartDrawer").classList.toggle("open");
 }
 
-function addToCart(name, price, sizeId, code) {
-    const sizeSelect = document.getElementById(sizeId);
-    const size = sizeSelect.value;
+window.addToCart = function(name, price, sizeId, code) {
+  const sizeSelect = document.getElementById(sizeId);
+  const size = sizeSelect.value;
+  if (!size) { alert("Please select a size first!"); return; }
 
-    if (!size) {
-        alert("Please select a size first!");
-        return;
-    }
+  const item = { name, price, size, code, id: Date.now() };
+  cart.push(item);
+  updateCartUI();
 
-    const item = { name, price, size, code, id: Date.now() };
-    cart.push(item);
-    updateCartUI();
-
-    if (event && event.target) {
-        const originalText = event.target.innerText;
-        event.target.innerText = "ADDED!";
-        setTimeout(() => { event.target.innerText = originalText; }, 1000);
-    }
-
-    if (sizeId !== 'modalSize') toggleCart();
-    sizeSelect.selectedIndex = 0;
+  if (event && event.target) {
+    const originalText = event.target.innerText;
+    event.target.innerText = "ADDED!";
+    setTimeout(() => { event.target.innerText = originalText; }, 1000);
+  }
+  if (sizeId !== "modalSize") toggleCart();
+  sizeSelect.selectedIndex = 0;
 }
 
-function removeItem(id) {
-    cart = cart.filter(item => item.id !== id);
-    updateCartUI();
+window.removeItem = function(id) {
+  cart = cart.filter((item) => item.id !== id);
+  updateCartUI();
 }
 
 function updateCartUI() {
-    const cartCount = document.getElementById('cart-count');
-    const cartItemsContainer = document.getElementById('cartItems');
-    const subtotalEl = document.getElementById('subtotal');
-    const totalEl = document.getElementById('totalPrice');
+  const cartCount = document.getElementById("cart-count");
+  const cartItemsContainer = document.getElementById("cartItems");
+  const subtotalEl = document.getElementById("subtotal");
+  const totalEl = document.getElementById("totalPrice");
 
-    if (cartCount) cartCount.innerText = cart.length;
-    if (!cartItemsContainer) return;
+  if (cartCount) cartCount.innerText = cart.length;
+  if (!cartItemsContainer) return;
 
-    cartItemsContainer.innerHTML = cart.map(item => `
+  cartItemsContainer.innerHTML = cart.map(item => `
         <div class="cart-item">
             <div>
                 <h4>${item.name}</h4>
@@ -119,217 +120,73 @@ function updateCartUI() {
             </div>
             <button onclick="removeItem(${item.id})" class="remove-btn">✕</button>
         </div>
-    `).join('');
+    `).join("");
 
-    const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-    if (subtotalEl) subtotalEl.innerText = subtotal;
-    if (totalEl) totalEl.innerText = subtotal + shippingFee;
+  const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+  if (subtotalEl) subtotalEl.innerText = subtotal;
+  if (totalEl) totalEl.innerText = subtotal + shippingFee;
 }
 
-/* ===================== UPDATED CHECKOUT FUNCTION ===================== */
-// Add this logic inside your checkoutWhatsApp function
-async function saveOrderToFirebase(orderData) {
-    try {
-        // We use the same 'db' instance from the Firebase setup
-        await addDoc(collection(db, "orders"), {
-            customerEmail: userEmail, // Get this from Auth
-            items: cart,
-            total: subtotal,
-            status: "Processing",
-            date: new Date().toISOString(),
-            trackingLink: "" // You will fill this later in Firebase console
-        });
-        console.log("Order saved to account!");
-    } catch (e) {
-        console.error("Error saving order: ", e);
-    }
-}
-function checkoutWhatsApp() {
-    // 1. Validate Cart
-    if (cart.length === 0) {
-        alert("Your cart is empty!");
-        return;
-    }
+/* ===================== CHECKOUT ===================== */
+window.checkoutWhatsApp = function() {
+  if (cart.length === 0) { alert("Your cart is empty!"); return; }
 
-    // 2. Get Customer Details from the inputs
-    const name = document.getElementById('custName').value.trim();
-    const phone = document.getElementById('custPhone').value.trim();
-    const city = document.getElementById('custCity').value.trim();
-    const address = document.getElementById('custAddress').value.trim();
+  const name = document.getElementById("custName").value.trim();
+  const phone = document.getElementById("custPhone").value.trim();
+  const city = document.getElementById("custCity").value.trim();
+  const address = document.getElementById("custAddress").value.trim();
 
-    // 3. Validate Details
-    if (!name || !phone || !address) {
-        alert("Please fill in your Delivery Details (Name, Phone, and Address) inside the cart first!");
-        return;
-    }
+  if (!name || !phone || !address) {
+    alert("Please fill in Delivery Details inside the cart!");
+    return;
+  }
 
-    // 4. Format the Items List
-    let itemDetails = cart.map((item, i) => 
-        `${i + 1}. ${item.name} (${item.code})\n   Size: ${item.size} - Rs.${item.price}`
-    ).join('\n\n');
+  let itemDetails = cart.map((item, i) => 
+    `${i + 1}. ${item.name} (${item.code})\n Size: ${item.size} - Rs.${item.price}`).join("\n\n");
 
-    const total = document.getElementById('totalPrice').innerText;
+  const total = document.getElementById("totalPrice").innerText;
+  let messageText = `*NEW ORDER REQUEST*\n\n*Customer:*\nName: ${name}\nPhone: ${phone}\nCity: ${city}\nAddress: ${address}\n\n*Items:*\n${itemDetails}\n\n*TOTAL: Rs. ${total}*`;
 
-    // 5. Build the Message String
-    let messageText = `*NEW ORDER REQUEST*\n\n` +
-                      `*Customer Details:*\n` +
-                      `Name: ${name}\n` +
-                      `Phone: ${phone}\n` +
-                      `City: ${city}\n` +
-                      `Address: ${address}\n\n` +
-                      `*Ordered Items:*\n${itemDetails}\n\n` +
-                      `*TOTAL AMOUNT: Rs. ${total}*`;
-
-    // 6. Send to WhatsApp
-    const whatsappNumber = "94719478895"; 
-    const encodedMessage = encodeURIComponent(messageText);
-    window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, "_blank");
+  const whatsappNumber = "94719478895";
+  window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(messageText)}`, "_blank");
 }
 
 /* ===================== PRODUCT MODAL ===================== */
-function openProductModal(name, price, images, code) {
-    const modal = document.getElementById('productModal');
-    const mainImg = document.getElementById('mainModalImg');
-    const thumbStrip = document.getElementById('thumbStrip');
+window.openProductModal = function(name, price, images, code) {
+  const modal = document.getElementById("productModal");
+  const mainImg = document.getElementById("mainModalImg");
+  const thumbStrip = document.getElementById("thumbStrip");
 
-    document.getElementById('modalTitle').innerText = name;
-    document.getElementById('modalPrice').innerText = "Rs. " + price;
-    document.getElementById('modalCode').innerText = code;
+  document.getElementById("modalTitle").innerText = name;
+  document.getElementById("modalPrice").innerText = "Rs. " + price;
+  document.getElementById("modalCode").innerText = code;
 
-    mainImg.src = images[0];
-    mainImg.style.opacity = '1';
+  mainImg.src = images[0];
+  thumbStrip.innerHTML = "";
+  images.forEach((imgSrc) => {
+    const thumb = document.createElement("img");
+    thumb.src = imgSrc;
+    thumb.className = "modal-thumb";
+    thumb.onclick = () => { mainImg.src = imgSrc; };
+    thumbStrip.appendChild(thumb);
+  });
 
-    thumbStrip.innerHTML = '';
-    images.forEach(imgSrc => {
-        const thumb = document.createElement('img');
-        thumb.src = imgSrc;
-        thumb.className = 'modal-thumb';
-        thumb.onclick = () => swapImg(imgSrc);
-        thumbStrip.appendChild(thumb);
-    });
-
-    const modalAddBtn = document.getElementById('modalAddBtn');
-    modalAddBtn.onclick = () => addToCart(name, price, 'modalSize', code);
-
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+  document.getElementById("modalAddBtn").onclick = () => addToCart(name, price, "modalSize", code);
+  modal.classList.add("active");
+  document.body.style.overflow = "hidden";
 }
 
-function swapImg(src) {
-    const mainImg = document.getElementById('mainModalImg');
-    mainImg.style.opacity = '0.4';
-    setTimeout(() => {
-        mainImg.src = src;
-        mainImg.style.opacity = '1';
-    }, 150);
+window.closeModal = function() {
+  document.getElementById("productModal").classList.remove("active");
+  document.body.style.overflow = "auto";
 }
 
-function closeModal() {
-    document.getElementById('productModal').classList.remove('active');
-    document.body.style.overflow = 'auto';
+window.toggleMenu = function() {
+  const nav = document.getElementById("navLinks");
+  if (nav) nav.classList.toggle("active");
 }
 
-/* ===================== MOBILE MENU ===================== */
-function toggleMenu() {
-    const nav = document.getElementById('navLinks');
-    if (nav) nav.classList.toggle('active');
-}
-
-/* ===================== SEARCH SYSTEM ===================== */
-const searchInput = document.getElementById("productSearch");
-const searchResults = document.getElementById("searchResults");
-
-if (searchInput) {
-    searchInput.addEventListener("input", () => {
-        const query = searchInput.value.toLowerCase().trim();
-        if (!searchResults) return;
-        searchResults.innerHTML = "";
-
-        if (!query) {
-            searchResults.classList.remove("active");
-            return;
-        }
-
-        const matches = products.filter(p => p.name.toLowerCase().includes(query));
-
-        matches.forEach(product => {
-            const item = document.createElement("div");
-            item.className = "search-item";
-            item.innerText = product.name;
-            item.onclick = () => {
-                openProductModal(product.name, product.price, product.images, product.code);
-                searchResults.classList.remove("active");
-                searchInput.value = "";
-            };
-            searchResults.appendChild(item);
-        });
-
-        searchResults.classList.add("active");
-    });
-}
-/* ===================== SIZE CHART TOGGLE ===================== */
-function toggleSizeChart() {
-    const chart = document.getElementById('sizeChartContainer');
-    if (chart) {
-        // This toggles the 'active' class. 
-        // Ensure your CSS has .size-chart-overlay.active { display: flex; }
-        chart.classList.toggle('active');
-        
-        // Optional: Prevent scrolling when chart is open
-        if (chart.classList.contains('active')) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'auto';
-        }
-    }
-}
-/* ===================== DASHBOARD LOGIC ===================== */
-function renderOrders(orders) {
-    const container = document.getElementById('orderList');
-    if (orders.length === 0) {
-        container.innerHTML = `<p>No orders found yet. Start your adventure!</p>`;
-        return;
-    }
-
-    container.innerHTML = orders.map(order => `
-        <div class="product-card" style="margin-bottom: 20px; flex-direction: row; justify-content: space-between;">
-            <div>
-                <h4>Order #${order.id}</h4>
-                <p style="font-size:12px; color:#aaa;">Date: ${order.date}</p>
-                <p style="color:#00ff4c;">Total: Rs. ${order.total}</p>
-            </div>
-            <div style="text-align:right;">
-                <span class="status-tag">${order.status}</span>
-                <br><br>
-                <a href="${order.trackingLink}" target="_blank" class="action-btn" style="padding: 8px 15px; font-size:12px;">TRACK ORDER</a>
-            </div>
-        </div>
-    `).join('');
-}
-async function checkoutWhatsApp() {
-    // 1. Check if user is logged in
-    const user = auth.currentUser;
-    if (!user) {
-        alert("Please login to place an order!");
-        window.location.href = 'account.html';
-        return;
-    }
-
-    // 2. SAVE ORDER TO FIREBASE FOR ADMIN
-    try {
-        await addDoc(collection(db, "orders"), {
-            customerEmail: user.email,
-            customerName: document.getElementById('clientDisplayName').innerText, 
-            items: cart, // Your existing cart array
-            total: subtotal, // Your existing total
-            status: "Pending",
-            date: new Date().toLocaleDateString(),
-            trackingLink: "" // Admin will fill this later
-        });
-        
-        // 3. PROCEED TO WHATSAPP (Your existing code)
-        // window.open(whatsappUrl);
-    } catch (e) {
-        console.error("Admin sync failed: ", e);
-    }
+window.toggleSizeChart = function() {
+  const chart = document.getElementById("sizeChartContainer");
+  if (chart) chart.classList.toggle("active");
 }
