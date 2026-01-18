@@ -71,6 +71,7 @@
     <div id="add" class="section">
         <div class="card" style="max-width: 500px; margin: 0 auto;">
             <h3>ADD NEW ITEM</h3>
+            
             <label>Product Name</label>
             <input type="text" id="newName">
             
@@ -79,6 +80,13 @@
             
             <label>Item Code (e.g. AM-05)</label>
             <input type="text" id="newCode">
+
+            <label>Category</label>
+            <select id="newCategory">
+                <option value="Men">Men</option>
+                <option value="Women">Women</option>
+                <option value="Accessories">Accessories</option>
+            </select>
             
             <label>Image Link (e.g. i/shirt.png)</label>
             <input type="text" id="newImg">
@@ -87,6 +95,8 @@
         </div>
     </div>
 </div>
+
+
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -122,14 +132,13 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
         loadProducts();
-        loadOrders();
     } else {
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('dashboard').style.display = 'none';
     }
   });
 
-  // --- 1. LOAD PRODUCTS ---
+  // --- LOAD PRODUCTS ---
   async function loadProducts() {
     const list = document.getElementById('productList');
     list.innerHTML = "<p>Loading inventory...</p>";
@@ -143,8 +152,12 @@
             <img src="${p.images ? p.images[0] : ''}" style="width:50px; height:50px; object-fit:cover; float:left; margin-right:10px; border-radius:5px;">
             <input type="text" id="name-${d.id}" value="${p.name}" style="width: calc(100% - 70px);">
             <div style="display:flex; gap:5px;">
-                <input type="number" id="price-${d.id}" value="${p.price}" placeholder="Price">
-                <input type="text" id="code-${d.id}" value="${p.code}" placeholder="Code">
+                <input type="number" id="price-${d.id}" value="${p.price}">
+                <select id="cat-${d.id}" style="font-size:10px;">
+                    <option ${p.category=='Men'?'selected':''}>Men</option>
+                    <option ${p.category=='Women'?'selected':''}>Women</option>
+                    <option ${p.category=='Accessories'?'selected':''}>Accessories</option>
+                </select>
             </div>
             <button class="btn btn-save" onclick="updateProduct('${d.id}')">SAVE CHANGES</button>
             <button class="btn btn-del" onclick="deleteItem('products', '${d.id}')">DELETE</button>
@@ -153,96 +166,51 @@
     });
   }
 
-  // --- 2. LOAD ORDERS ---
-  async function loadOrders() {
-    const list = document.getElementById('orderList');
-    // Using simple query to avoid index errors initially
-    const snap = await getDocs(collection(db, "orders")); 
-    
-    list.innerHTML = "";
-    if(snap.empty) { list.innerHTML = "<p>No orders found.</p>"; return; }
-
-    snap.forEach(d => {
-        const o = d.data();
-        let itemsHtml = o.items.map(i => `<li>${i.name} (${i.size})</li>`).join('');
-        
-        list.innerHTML += `
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <strong style="color:var(--neon)">${o.customerName || o.customerEmail}</strong>
-                <span>Rs. ${o.total}</span>
-            </div>
-            <ul style="font-size:12px; color:#aaa; padding-left:20px; margin:5px 0;">${itemsHtml}</ul>
-            <p style="font-size:12px;">📍 ${o.customerCity || 'No Location'}</p>
-            
-            <label>Tracking Link</label>
-            <input type="text" id="track-${d.id}" value="${o.trackingLink || ''}" placeholder="Paste URL here">
-            
-            <label>Status</label>
-            <select id="status-${d.id}">
-                <option ${o.status=='Pending'?'selected':''}>Pending</option>
-                <option ${o.status=='Shipped'?'selected':''}>Shipped</option>
-                <option ${o.status=='Delivered'?'selected':''}>Delivered</option>
-            </select>
-            
-            <button class="btn btn-save" onclick="updateOrder('${d.id}')">UPDATE ORDER</button>
-        </div>`;
-    });
-  }
-
   // --- ACTIONS ---
   window.updateProduct = async (id) => {
     const name = document.getElementById(`name-${id}`).value;
     const price = Number(document.getElementById(`price-${id}`).value);
-    const code = document.getElementById(`code-${id}`).value;
-    await updateDoc(doc(db, "products", id), { name, price, code });
+    const category = document.getElementById(`cat-${id}`).value;
+    await updateDoc(doc(db, "products", id), { name, price, category });
     alert("Product Updated!");
-  };
-
-  window.updateOrder = async (id) => {
-    const track = document.getElementById(`track-${id}`).value;
-    const status = document.getElementById(`status-${id}`).value;
-    await updateDoc(doc(db, "orders", id), { trackingLink: track, status: status });
-    alert("Order Updated!");
-  };
-
-  window.deleteItem = async (col, id) => {
-    if(confirm("Are you sure? This cannot be undone.")) {
-        await deleteDoc(doc(db, col, id));
-        col === 'products' ? loadProducts() : loadOrders();
-    }
   };
 
   window.createNewProduct = async () => {
     const name = document.getElementById('newName').value;
     const price = Number(document.getElementById('newPrice').value);
     const code = document.getElementById('newCode').value;
+    const category = document.getElementById('newCategory').value;
     const img = document.getElementById('newImg').value;
     
     if(!name || !price) { alert("Name and Price are required"); return; }
 
     try {
         await addDoc(collection(db, "products"), {
-            name: name, price: price, code: code,
-            images: [img], // Stores as array for your slider
+            name: name, 
+            price: price, 
+            code: code,
+            category: category,
+            images: [img],
             createdAt: new Date()
         });
         alert("Product Created!");
-        document.getElementById('newName').value = ""; // Clear form
-        switchTab('products'); // Go back to list
+        document.getElementById('newName').value = "";
+        switchTab('products');
     } catch(e) { alert(e.message); }
   };
 
-  // --- TABS ---
+  window.deleteItem = async (col, id) => {
+    if(confirm("Are you sure?")) {
+        await deleteDoc(doc(db, col, id));
+        loadProducts();
+    }
+  };
+
   window.switchTab = (tabId) => {
     document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    
     document.getElementById(tabId).classList.add('active');
-    event.target.classList.add('active');
-    
     if(tabId === 'products') loadProducts();
-    if(tabId === 'orders') loadOrders();
   };
 </script>
 </body>
