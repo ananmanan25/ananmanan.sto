@@ -2,110 +2,247 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ANANMANAN | Admin Portal</title>
-    <link rel="stylesheet" href="style.css">
+    <title>ANANMANAN | Master Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        .admin-container { padding: 120px 5%; }
-        .order-row { 
-            background: rgba(255,255,255,0.05); 
-            margin-bottom: 15px; 
-            padding: 20px; 
-            border-radius: 15px;
-            display: grid;
-            grid-template-columns: 1fr 1fr 2fr 1fr;
-            align-items: center;
-            gap: 20px;
-        }
-        .admin-input {
-            background: #111;
-            border: 1px solid #333;
-            color: white;
-            padding: 8px;
-            border-radius: 5px;
-            width: 100%;
-        }
-        .update-btn {
-            background: #00ff4c;
-            color: black;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        :root { --neon: #00ff4c; --bg: #0a0a0a; --card: #111; --text: #eee; }
+        body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; padding: 20px; margin: 0; }
+        
+        /* Layout */
+        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { background: #222; color: #888; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .tab-btn.active { background: var(--neon); color: black; }
+        
+        /* Sections */
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* Grid & Cards */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .card { background: var(--card); border: 1px solid #333; padding: 15px; border-radius: 10px; }
+        
+        /* Inputs */
+        input, select { background: #000; border: 1px solid #444; color: white; padding: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        label { font-size: 12px; color: #888; display: block; margin-bottom: 5px; }
+        
+        /* Buttons */
+        .btn { border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 5px; }
+        .btn-save { background: var(--neon); color: black; width: 100%; }
+        .btn-del { background: #ff4c4c; color: white; float: right; }
+        .btn-add { background: var(--neon); color: black; padding: 15px; width: 100%; font-size: 16px; margin-bottom: 30px; }
+
+        /* Login Screen */
+        #loginScreen { position: fixed; top:0; left:0; width:100%; height:100%; background:black; display:flex; justify-content:center; align-items:center; z-index: 1000; }
+        .login-box { background: #111; padding: 40px; border: 1px solid var(--neon); text-align: center; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-<div id="adminAccess" class="admin-container" style="display:none;">
-    <h1 style="color:#00ff4c; margin-bottom: 30px;">ORDER MANAGEMENT</h1>
-    <div id="allOrdersList">
-        </div>
+<div id="loginScreen">
+    <div class="login-box">
+        <h2 style="color:var(--neon)">ADMIN ACCESS</h2>
+        <input type="email" id="adminEmail" placeholder="Admin Email">
+        <input type="password" id="adminPass" placeholder="Password">
+        <button class="btn btn-save" onclick="adminLogin()">UNLOCK SYSTEM</button>
+    </div>
 </div>
 
-<div id="denied" class="admin-container" style="text-align:center;">
-    <h1>Access Denied</h1>
-    <p>Only authorized admins can view this page.</p>
-    <a href="account.html" style="color:#00ff4c;">Login as Admin</a>
+<div id="dashboard" style="display:none;">
+    <div class="admin-header">
+        <h2 style="margin:0; color:var(--neon);">SYSTEM CONTROL</h2>
+        <button class="btn" style="background:#333; color:white;" onclick="logout()">LOGOUT</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('products')">MANAGE PRODUCTS</button>
+        <button class="tab-btn" onclick="switchTab('orders')">VIEW ORDERS</button>
+        <button class="tab-btn" onclick="switchTab('add')">ADD NEW ITEM</button>
+    </div>
+
+    <div id="products" class="section active">
+        <div id="productList" class="grid"></div>
+    </div>
+
+    <div id="orders" class="section">
+        <div id="orderList" class="grid"></div>
+    </div>
+
+    <div id="add" class="section">
+        <div class="card" style="max-width: 500px; margin: 0 auto;">
+            <h3>ADD NEW ITEM</h3>
+            <label>Product Name</label>
+            <input type="text" id="newName">
+            
+            <label>Price (Rs)</label>
+            <input type="number" id="newPrice">
+            
+            <label>Item Code (e.g. AM-05)</label>
+            <input type="text" id="newCode">
+            
+            <label>Image Link (e.g. i/shirt.png)</label>
+            <input type="text" id="newImg">
+            
+            <button class="btn btn-add" onclick="createNewProduct()">UPLOAD PRODUCT</button>
+        </div>
+    </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // USE YOUR CONFIG HERE
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "your-app.firebaseapp.com",
-    projectId: "your-app",
-    storageBucket: "your-app.appspot.com",
-    messagingSenderId: "...",
-    appId: "..."
+    apiKey: "AIzaSyCYLMXUCC6t-zT4CeFHBG7OMMwUNDhA8i0",
+    authDomain: "ananmanan-2412c.firebaseapp.com",
+    projectId: "ananmanan-2412c",
+    storageBucket: "ananmanan-2412c.firebasestorage.app",
+    messagingSenderId: "244268274543",
+    appId: "1:244268274543:web:10d1e2ccb230d660d8ce9a",
   };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const ADMIN_EMAIL = "s.l.bumbra@gmail.com"; 
 
-  const ADMIN_EMAIL = "s.l.bumbra@gmail.com"; // CHANGE THIS TO YOUR EMAIL
+  // --- AUTH SYSTEM ---
+  window.adminLogin = async () => {
+    const e = document.getElementById('adminEmail').value;
+    const p = document.getElementById('adminPass').value;
+    try { await signInWithEmailAndPassword(auth, e, p); } 
+    catch(err) { alert("Access Denied: " + err.message); }
+  };
+
+  window.logout = () => signOut(auth);
 
   onAuthStateChanged(auth, (user) => {
     if (user && user.email === ADMIN_EMAIL) {
-        document.getElementById('adminAccess').style.display = 'block';
-        document.getElementById('denied').style.display = 'none';
-        loadAllOrders();
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadProducts();
+        loadOrders();
+    } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('dashboard').style.display = 'none';
     }
   });
 
-  async function loadAllOrders() {
-    const list = document.getElementById('allOrdersList');
-    const querySnapshot = await getDocs(collection(db, "orders"));
+  // --- 1. LOAD PRODUCTS ---
+  async function loadProducts() {
+    const list = document.getElementById('productList');
+    list.innerHTML = "<p>Loading inventory...</p>";
+    const snap = await getDocs(collection(db, "products"));
     
     list.innerHTML = "";
-    querySnapshot.forEach((orderDoc) => {
-        const data = orderDoc.data();
+    snap.forEach(d => {
+        const p = d.data();
         list.innerHTML += `
-            <div class="order-row">
-                <div><strong>${data.customerEmail}</strong></div>
-                <div>Rs. ${data.total}</div>
-                <div>
-                    <input type="text" id="track-${orderDoc.id}" 
-                           placeholder="Paste Tracking Link Here" 
-                           value="${data.trackingLink || ''}" 
-                           class="admin-input">
-                </div>
-                <button class="update-btn" onclick="updateTracking('${orderDoc.id}')">SAVE</button>
+        <div class="card">
+            <img src="${p.images ? p.images[0] : ''}" style="width:50px; height:50px; object-fit:cover; float:left; margin-right:10px; border-radius:5px;">
+            <input type="text" id="name-${d.id}" value="${p.name}" style="width: calc(100% - 70px);">
+            <div style="display:flex; gap:5px;">
+                <input type="number" id="price-${d.id}" value="${p.price}" placeholder="Price">
+                <input type="text" id="code-${d.id}" value="${p.code}" placeholder="Code">
             </div>
-        `;
+            <button class="btn btn-save" onclick="updateProduct('${d.id}')">SAVE CHANGES</button>
+            <button class="btn btn-del" onclick="deleteItem('products', '${d.id}')">DELETE</button>
+            <div style="clear:both;"></div>
+        </div>`;
     });
   }
 
-  window.updateTracking = async (id) => {
-    const link = document.getElementById(`track-${id}`).value;
-    const orderRef = doc(db, "orders", id);
-    await updateDoc(orderRef, { trackingLink: link, status: "Shipped" });
-    alert("Tracking Updated! Customer can now see it.");
+  // --- 2. LOAD ORDERS ---
+  async function loadOrders() {
+    const list = document.getElementById('orderList');
+    // Using simple query to avoid index errors initially
+    const snap = await getDocs(collection(db, "orders")); 
+    
+    list.innerHTML = "";
+    if(snap.empty) { list.innerHTML = "<p>No orders found.</p>"; return; }
+
+    snap.forEach(d => {
+        const o = d.data();
+        let itemsHtml = o.items.map(i => `<li>${i.name} (${i.size})</li>`).join('');
+        
+        list.innerHTML += `
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <strong style="color:var(--neon)">${o.customerName || o.customerEmail}</strong>
+                <span>Rs. ${o.total}</span>
+            </div>
+            <ul style="font-size:12px; color:#aaa; padding-left:20px; margin:5px 0;">${itemsHtml}</ul>
+            <p style="font-size:12px;">📍 ${o.customerCity || 'No Location'}</p>
+            
+            <label>Tracking Link</label>
+            <input type="text" id="track-${d.id}" value="${o.trackingLink || ''}" placeholder="Paste URL here">
+            
+            <label>Status</label>
+            <select id="status-${d.id}">
+                <option ${o.status=='Pending'?'selected':''}>Pending</option>
+                <option ${o.status=='Shipped'?'selected':''}>Shipped</option>
+                <option ${o.status=='Delivered'?'selected':''}>Delivered</option>
+            </select>
+            
+            <button class="btn btn-save" onclick="updateOrder('${d.id}')">UPDATE ORDER</button>
+        </div>`;
+    });
+  }
+
+  // --- ACTIONS ---
+  window.updateProduct = async (id) => {
+    const name = document.getElementById(`name-${id}`).value;
+    const price = Number(document.getElementById(`price-${id}`).value);
+    const code = document.getElementById(`code-${id}`).value;
+    await updateDoc(doc(db, "products", id), { name, price, code });
+    alert("Product Updated!");
+  };
+
+  window.updateOrder = async (id) => {
+    const track = document.getElementById(`track-${id}`).value;
+    const status = document.getElementById(`status-${id}`).value;
+    await updateDoc(doc(db, "orders", id), { trackingLink: track, status: status });
+    alert("Order Updated!");
+  };
+
+  window.deleteItem = async (col, id) => {
+    if(confirm("Are you sure? This cannot be undone.")) {
+        await deleteDoc(doc(db, col, id));
+        col === 'products' ? loadProducts() : loadOrders();
+    }
+  };
+
+  window.createNewProduct = async () => {
+    const name = document.getElementById('newName').value;
+    const price = Number(document.getElementById('newPrice').value);
+    const code = document.getElementById('newCode').value;
+    const img = document.getElementById('newImg').value;
+    
+    if(!name || !price) { alert("Name and Price are required"); return; }
+
+    try {
+        await addDoc(collection(db, "products"), {
+            name: name, price: price, code: code,
+            images: [img], // Stores as array for your slider
+            createdAt: new Date()
+        });
+        alert("Product Created!");
+        document.getElementById('newName').value = ""; // Clear form
+        switchTab('products'); // Go back to list
+    } catch(e) { alert(e.message); }
+  };
+
+  // --- TABS ---
+  window.switchTab = (tabId) => {
+    document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(tabId).classList.add('active');
+    event.target.classList.add('active');
+    
+    if(tabId === 'products') loadProducts();
+    if(tabId === 'orders') loadOrders();
   };
 </script>
 </body>
