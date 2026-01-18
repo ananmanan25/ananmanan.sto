@@ -28,7 +28,7 @@ function loadLiveProducts() {
     
     if (pageName.includes("men.html")) filterCategory = "Men";
     else if (pageName.includes("women.html")) filterCategory = "Women";
-    else if (pageName.includes("acc.html")) filterCategory = "Accessories";
+   else if (pageName.includes("acc.html")) filterCategory = "Accessories";
 
     // 2. Listen to Firebase and filter products
     onSnapshot(collection(db, "products"), (snapshot) => {
@@ -201,5 +201,6 @@ window.toggleSizeChart = function() {
   const chart = document.getElementById("sizeChartContainer");
   if (chart) chart.classList.toggle("active");
 }
+
 
 
