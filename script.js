@@ -127,6 +127,23 @@ function updateCartUI() {
 }
 
 /* ===================== UPDATED CHECKOUT FUNCTION ===================== */
+// Add this logic inside your checkoutWhatsApp function
+async function saveOrderToFirebase(orderData) {
+    try {
+        // We use the same 'db' instance from the Firebase setup
+        await addDoc(collection(db, "orders"), {
+            customerEmail: userEmail, // Get this from Auth
+            items: cart,
+            total: subtotal,
+            status: "Processing",
+            date: new Date().toISOString(),
+            trackingLink: "" // You will fill this later in Firebase console
+        });
+        console.log("Order saved to account!");
+    } catch (e) {
+        console.error("Error saving order: ", e);
+    }
+}
 function checkoutWhatsApp() {
     // 1. Validate Cart
     if (cart.length === 0) {
@@ -249,4 +266,70 @@ if (searchInput) {
 
         searchResults.classList.add("active");
     });
+}
+/* ===================== SIZE CHART TOGGLE ===================== */
+function toggleSizeChart() {
+    const chart = document.getElementById('sizeChartContainer');
+    if (chart) {
+        // This toggles the 'active' class. 
+        // Ensure your CSS has .size-chart-overlay.active { display: flex; }
+        chart.classList.toggle('active');
+        
+        // Optional: Prevent scrolling when chart is open
+        if (chart.classList.contains('active')) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'auto';
+        }
+    }
+}
+/* ===================== DASHBOARD LOGIC ===================== */
+function renderOrders(orders) {
+    const container = document.getElementById('orderList');
+    if (orders.length === 0) {
+        container.innerHTML = `<p>No orders found yet. Start your adventure!</p>`;
+        return;
+    }
+
+    container.innerHTML = orders.map(order => `
+        <div class="product-card" style="margin-bottom: 20px; flex-direction: row; justify-content: space-between;">
+            <div>
+                <h4>Order #${order.id}</h4>
+                <p style="font-size:12px; color:#aaa;">Date: ${order.date}</p>
+                <p style="color:#00ff4c;">Total: Rs. ${order.total}</p>
+            </div>
+            <div style="text-align:right;">
+                <span class="status-tag">${order.status}</span>
+                <br><br>
+                <a href="${order.trackingLink}" target="_blank" class="action-btn" style="padding: 8px 15px; font-size:12px;">TRACK ORDER</a>
+            </div>
+        </div>
+    `).join('');
+}
+async function checkoutWhatsApp() {
+    // 1. Check if user is logged in
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Please login to place an order!");
+        window.location.href = 'account.html';
+        return;
+    }
+
+    // 2. SAVE ORDER TO FIREBASE FOR ADMIN
+    try {
+        await addDoc(collection(db, "orders"), {
+            customerEmail: user.email,
+            customerName: document.getElementById('clientDisplayName').innerText, 
+            items: cart, // Your existing cart array
+            total: subtotal, // Your existing total
+            status: "Pending",
+            date: new Date().toLocaleDateString(),
+            trackingLink: "" // Admin will fill this later
+        });
+        
+        // 3. PROCEED TO WHATSAPP (Your existing code)
+        // window.open(whatsappUrl);
+    } catch (e) {
+        console.error("Admin sync failed: ", e);
+    }
 }
