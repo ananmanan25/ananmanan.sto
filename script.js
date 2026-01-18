@@ -15,32 +15,31 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 3. LIVE PRODUCT LOADING (REPLACES THE HARD-CODED ARRAY)
+// 3. LIVE PRODUCT LOADING
 let products = [];
 
 function loadLiveProducts() {
     const shopGrid = document.querySelector('.shop-grid');
     if (!shopGrid) return;
 
-    // 1. Detect which category to show based on the page name
+    // Detect category from URL
     const pageName = window.location.pathname.toLowerCase();
     let filterCategory = "";
     
     if (pageName.includes("men.html")) filterCategory = "Men";
     else if (pageName.includes("women.html")) filterCategory = "Women";
-   else if (pageName.includes("acc.html")) filterCategory = "Accessories";
+    else if (pageName.includes("acc.html")) filterCategory = "Accessories";
 
-    // 2. Listen to Firebase and filter products
     onSnapshot(collection(db, "products"), (snapshot) => {
         products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // Only show products matching the page category (if a category is set)
+        // Filter products based on category
         let displayProducts = filterCategory 
             ? products.filter(p => p.category === filterCategory) 
             : products;
 
         shopGrid.innerHTML = displayProducts.map(p => `
-            <div class="product-card" onclick="openProductModal('${p.name}', ${p.price}, ${JSON.stringify(p.images).replace(/"/g, '&quot;')}, '${p.code}')">
+            <div class="product-card" onclick="openProductModal('${p.name.replace(/'/g, "\\'")}', ${p.price}, ${JSON.stringify(p.images).replace(/"/g, '&quot;')}, '${p.code}')">
                 <div class="image-box">
                     <img src="${p.images[0]}" alt="${p.name}">
                 </div>
@@ -52,6 +51,7 @@ function loadLiveProducts() {
         `).join('');
     });
 }
+
 /* ===================== GLOBAL VARIABLES ===================== */
 const cursor = document.getElementById("custom-cursor");
 const dot = document.getElementById("cursor-dot");
@@ -71,41 +71,47 @@ document.addEventListener("mousemove", (e) => {
 });
 
 /* ===================== HERO SLIDER ===================== */
-setInterval(() => {
-  if (slides.length > 0) {
-    slides[slideIndex].classList.remove("active");
-    slideIndex = (slideIndex + 1) % slides.length;
-    slides[slideIndex].classList.add("active");
-  }
-}, 4000);
+if (slides.length > 0) {
+    setInterval(() => {
+        slides[slideIndex].classList.remove("active");
+        slideIndex = (slideIndex + 1) % slides.length;
+        slides[slideIndex].classList.add("active");
+    }, 4000);
+}
 
 /* ===================== INITIALIZATION ===================== */
 window.addEventListener("load", () => {
-  loadLiveProducts(); // Start loading from Firebase
+  loadLiveProducts();
   updateCartUI();
 });
 
 /* ===================== CART LOGIC ===================== */
 window.toggleCart = function() {
-  document.getElementById("cartDrawer").classList.toggle("open");
+  const drawer = document.getElementById("cartDrawer");
+  if (drawer) drawer.classList.toggle("open");
 }
 
-window.addToCart = function(name, price, sizeId, code) {
+// FIXED: Added 'event' parameter to handle button text change correctly
+window.addToCart = function(name, price, sizeId, code, event) {
   const sizeSelect = document.getElementById(sizeId);
-  const size = sizeSelect.value;
+  const size = sizeSelect ? sizeSelect.value : null;
+  
   if (!size) { alert("Please select a size first!"); return; }
 
   const item = { name, price, size, code, id: Date.now() };
   cart.push(item);
   updateCartUI();
 
-  if (event && event.target) {
-    const originalText = event.target.innerText;
-    event.target.innerText = "ADDED!";
-    setTimeout(() => { event.target.innerText = originalText; }, 1000);
+  // FIXED: Robust check for the event and target
+  const btn = event ? event.target : (window.event ? window.event.target : null);
+  if (btn && btn.innerText !== undefined) {
+    const originalText = btn.innerText;
+    btn.innerText = "ADDED!";
+    setTimeout(() => { btn.innerText = originalText; }, 1000);
   }
+
   if (sizeId !== "modalSize") toggleCart();
-  sizeSelect.selectedIndex = 0;
+  if (sizeSelect) sizeSelect.selectedIndex = 0;
 }
 
 window.removeItem = function(id) {
@@ -142,10 +148,10 @@ function updateCartUI() {
 window.checkoutWhatsApp = function() {
   if (cart.length === 0) { alert("Your cart is empty!"); return; }
 
-  const name = document.getElementById("custName").value.trim();
-  const phone = document.getElementById("custPhone").value.trim();
-  const city = document.getElementById("custCity").value.trim();
-  const address = document.getElementById("custAddress").value.trim();
+  const name = document.getElementById("custName")?.value.trim();
+  const phone = document.getElementById("custPhone")?.value.trim();
+  const city = document.getElementById("custCity")?.value.trim();
+  const address = document.getElementById("custAddress")?.value.trim();
 
   if (!name || !phone || !address) {
     alert("Please fill in Delivery Details inside the cart!");
@@ -155,7 +161,7 @@ window.checkoutWhatsApp = function() {
   let itemDetails = cart.map((item, i) => 
     `${i + 1}. ${item.name} (${item.code})\n Size: ${item.size} - Rs.${item.price}`).join("\n\n");
 
-  const total = document.getElementById("totalPrice").innerText;
+  const total = document.getElementById("totalPrice")?.innerText || "0";
   let messageText = `*NEW ORDER REQUEST*\n\n*Customer:*\nName: ${name}\nPhone: ${phone}\nCity: ${city}\nAddress: ${address}\n\n*Items:*\n${itemDetails}\n\n*TOTAL: Rs. ${total}*`;
 
   const whatsappNumber = "94719478895";
@@ -167,6 +173,8 @@ window.openProductModal = function(name, price, images, code) {
   const modal = document.getElementById("productModal");
   const mainImg = document.getElementById("mainModalImg");
   const thumbStrip = document.getElementById("thumbStrip");
+
+  if (!modal || !mainImg || !thumbStrip) return;
 
   document.getElementById("modalTitle").innerText = name;
   document.getElementById("modalPrice").innerText = "Rs. " + price;
@@ -182,13 +190,16 @@ window.openProductModal = function(name, price, images, code) {
     thumbStrip.appendChild(thumb);
   });
 
-  document.getElementById("modalAddBtn").onclick = () => addToCart(name, price, "modalSize", code);
+  // FIXED: Pass 'event' to the addToCart function
+  document.getElementById("modalAddBtn").onclick = (e) => addToCart(name, price, "modalSize", code, e);
+  
   modal.classList.add("active");
   document.body.style.overflow = "hidden";
 }
 
 window.closeModal = function() {
-  document.getElementById("productModal").classList.remove("active");
+  const modal = document.getElementById("productModal");
+  if (modal) modal.classList.remove("active");
   document.body.style.overflow = "auto";
 }
 
@@ -201,6 +212,3 @@ window.toggleSizeChart = function() {
   const chart = document.getElementById("sizeChartContainer");
   if (chart) chart.classList.toggle("active");
 }
-
-
-
