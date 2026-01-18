@@ -2017,6 +2017,67 @@ html, body {
     vertical-align: middle;
     animation: blinkCursor 0.8s infinite;
 }
+/* ===========================
+   VISION PAGE RESPONSIVE FIX
+   (NO DESIGN CHANGES)
+=========================== */
+
+/* Tablets */
+@media (max-width: 992px) {
+  .hero-slider {
+    height: 85vh;
+  }
+
+  .hero-content h1 {
+    font-size: 42px;
+  }
+
+  .hero-content p {
+    font-size: 15px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .hero-slider {
+    height: 75vh;
+  }
+
+  .hero-content {
+    padding: 0 16px;
+  }
+
+  .hero-content h1 {
+    font-size: 32px;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .hero-content p {
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+
+  .hero-content button {
+    width: 100%;
+    max-width: 260px;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  .hero-slider {
+    height: 70vh;
+  }
+
+  .hero-content h1 {
+    font-size: 26px;
+  }
+
+  .hero-content p {
+    font-size: 12px;
+  }
+}
 
 @keyframes blinkCursor {
     0%, 100% { opacity: 1; }
