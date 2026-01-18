@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ANANMANAN | Futuristic Wear</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="custom-cursor"></div>
+<div id="cursor-dot"></div>
+<div id="cartDrawer">
+    <div class="cart-header">
+        <h3>Shopping Cart</h3>
+        <button onclick="toggleCart()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">✕</button>
+    </div>
+
+    <div id="cartItems" style="overflow-y: auto; flex-grow: 1; padding-top: 20px;">
+        </div>
+<div id="customerDetails" style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 15px; margin-top: 10px;">
+    <h4 style="margin-bottom: 10px; color: #00ff4c;">Delivery Details</h4>
+    <input type="text" id="custName" placeholder="Full Name" style="width: 100%; margin-bottom: 8px; padding: 8px; border-radius: 5px; border: none;">
+    <input type="text" id="custPhone" placeholder="Phone Number 1" style="width: 100%; margin-bottom: 8px; padding: 8px; border-radius: 5px; border: none;">
+     <input type="text" id="custPhone" placeholder="Phone Number 2" style="width: 100%; margin-bottom: 8px; padding: 8px; border-radius: 5px; border: none;">
+    <input type="text" id="custCity" placeholder="City" style="width: 100%; margin-bottom: 8px; padding: 8px; border-radius: 5px; border: none;">
+    <textarea id="custAddress" placeholder="Full Billing Address" style="width: 100%; padding: 8px; border-radius: 5px; border: none; height: 60px;"></textarea>
+</div>
+    <div class="cart-footer">
+        <div class="total-row"><span>Subtotal:</span><span>Rs. <span id="subtotal">0</span></span></div>
+        <div class="total-row"><span>Shipping Fee:</span><span> <span id="shipping">Free Shipping</span></span></div>
+        <div class="total-row" style="font-size: 20px; font-weight: 800; color: #00ff4c; margin-top: 10px;">
+            <span>Total:</span> <span>Rs. <span id="totalPrice">0</span></span>
+        </div>
+        <button class="checkout-btn" onclick="checkoutWhatsApp()">ORDER VIA WHATSAPP</button>
+    </div>
+</div>
+
+<header class="glass-nav">
+  <div class="logo"><img src="i/an.png" width="30px"></div>
+  
+  <nav id="navLinks">
+    <a href="index.html">Home</a>
+    <a href="vision.html">Vision</a>
+    <a href="men.html">Men</a>
+    <a href="Women.html">Women</a>
+    <a href="acc.html">Accesories</a>
+  </nav>
+<button class="mobile-toggle" onclick="toggleMenu()" style="color:white; font-size:24px; background:none; border:none; cursor:pointer;">Shop Now</button>
+  <div class="nav-right">
+    <button class="nav-cart-btn" onclick="toggleCart()">🛒 <span id="cart-count">0</span></button>
+   </div>
+</header>
+<button class="action-btn">Accesories</button>
+<div class="shop-grid">
+     <!-- Product-8 -->
+    <div class="product-card" onclick="openProductModal('Tote-bag', 1500, ['i/ddd.png', 'i/ddd.png', 'i/ddd.png'], 'AM08')">
+        <div class="image-box">
+            <img src="i/ddd.png" alt="Product">
+        </div>
+        <div class="info">
+            <h3>Tote-bag</h3>
+            <div class="price">Rs. 1500</div></select></div>
+    </div> 
+    </div>
+ 
+</div>
+</div>
+
+<div class="modal-overlay" id="productModal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="closeModal()" style="position:absolute; right:25px; top:25px; background:none; border:none; color:white; font-size:35px; cursor:pointer; z-index:100;">&times;</button>
+        
+        <div class="modal-body">
+            <div class="modal-gallery">
+                <img src="" id="mainModalImg" class="main-modal-img">
+                <div class="thumb-strip" id="thumbStrip">
+                    </div>
+            </div>
+
+            <div class="modal-info">
+                <h2 id="modalTitle">Product Name</h2>
+                <div class="price" id="modalPrice">Rs. 0</div>
+                <p style="color: #666; font-size: 12px; margin-bottom: 20px;">Item Code: <span id="modalCode">---</span></p>
+                
+                <select id="modalSize" class="dark-select">
+                    <option value="" disabled selected>Choose Size</option>
+                    <option>S</option>
+                    <option>M</option>
+                    <option>L</option>
+                    <option>XL</option>
+                </select>
+                
+                <button class="action-btn" id="modalAddBtn">ADD TO CART</button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<footer class="footer-dark">
+    <div class="footer-main">
+        <div class="footer-brand-section">
+            <img src="i/t.png" alt="Ananmanan Logo" class="footer-big-logo">
+            <p class="brand-tagline">Wear The Vibe</p>
+            <div class="social-icons">
+                <a href="#"><img src="i/t (1).png" alt="Instagram"></a>
+                <a href="#"><img src="i/t (4).png" alt="Facebook"></a>
+                <a href="#"><img src="i/t (2).png" alt="TikTok"></a>
+            </div>
+        </div>
+
+        <div class="footer-links-grid">
+            <div class="footer-column">
+                <h3>MENU</h3>
+                <a href="#">Home</a>
+                <a href="#">Last Chance</a>
+            </div>
+            <div class="footer-column">
+                <h3>SUPPORT</h3>
+                <a href="#">FAQ</a>
+                <a href="#">Delivery</a>
+                <a href="#">Returns</a>
+            </div>
+            <div class="footer-column">
+                <h3>MY ACCOUNT</h3>
+                <a href="#">Login</a>
+                <a href="#">Register</a>
+            </div>
+        </div>
+
+        <div class="footer-actions">
+            <a href="https://www.youtube.com/@Wear.Ananmanan" class="action-btn neon-glow">ANANMANAN BLOG</a>
+            <a href="#" class="action-btn neon-glow">✉ EMAIL SIGN UP</a>
+            <a href="#" class="action-btn neon-glow">TRACK YOUR ORDER 🌍</a>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        <div class="policies">
+            <a href="#">Refund Policy</a>
+            <a href="#">Shipping Policy</a>
+            <a href="#">Terms of Service</a>
+        </div>
+        <p class="copy">© 2026 | Ananmanan | All Rights Reserved.</p>
+    </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
