@@ -40,13 +40,10 @@
 <main class="account-wrapper">
     <div id="authContainer" class="product-card glow-border auth-card">
         <h2 id="authTitle" style="margin-bottom: 30px;">LOGIN</h2>
-        
         <div id="registerFields" style="display: none;">
             <input type="text" id="regName" placeholder="Full Name" class="dark-select">
         </div>
-        
         <input type="email" id="authEmail" placeholder="Email Address" class="dark-select">
-        
         <div class="password-wrapper">
             <input type="password" id="authPass" placeholder="Password" class="dark-select">
             <span class="toggle-password" onclick="togglePasswordVisibility()">
@@ -55,9 +52,7 @@
                 </svg>
             </span>
         </div>
-        
         <button class="action-btn" id="mainAuthBtn" onclick="handleAuth()">SIGN IN</button>
-        
         <div class="form-footer">
             <p id="authToggleText">New to Ananmanan? <span onclick="toggleAuthMode()" class="neon-link">Create Account</span></p>
         </div>
@@ -94,57 +89,113 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  window.isLogin = true;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      document.getElementById('authContainer').style.display = 'none';
+      document.getElementById('dashboardContainer').style.display = 'block';
+      
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+          document.getElementById('clientDisplayName').innerText = userDoc.data().name.toUpperCase();
+      }
+      
+      loadUserOrders(user.email);
+
+      // ADMIN BUTTON: Redirects to admin.html if email matches
+      if (user.email === "s.l.bumbra@gmail.com") {
+          if (!document.getElementById('adminAccessBtn')) {
+              const adminBtn = document.createElement('button');
+              adminBtn.id = "adminAccessBtn";
+              adminBtn.innerText = "OPEN ADMIN PANEL";
+              adminBtn.className = "action-btn";
+              adminBtn.style.marginTop = "30px";
+              adminBtn.onclick = () => window.location.href = 'admin.html';
+              document.getElementById('dashboardContainer').appendChild(adminBtn);
+          }
+      }
+    } else {
+      document.getElementById('authContainer').style.display = 'block';
+      document.getElementById('dashboardContainer').style.display = 'none';
+      // Clean up admin button if user logs out
+      const existingBtn = document.getElementById('adminAccessBtn');
+      if(existingBtn) existingBtn.remove();
+    }
+  });
+
   window.handleAuth = async () => {
     const email = document.getElementById('authEmail').value;
     const pass = document.getElementById('authPass').value;
     const btn = document.getElementById('mainAuthBtn');
+    
+    if(!email || !pass) { alert("Fill all fields"); return; }
 
     try {
-        btn.innerText = "PROCESSING..."; // Processing state
-        if (isLogin) {
+        btn.innerText = "PROCESSING..."; 
+        btn.disabled = true;
+
+        if (window.isLogin) {
             await signInWithEmailAndPassword(auth, email, pass);
         } else {
             const fullName = document.getElementById('regName').value;
-            if (!fullName) { alert("Enter Full Name"); btn.innerText="CREATE"; return; }
+            if (!fullName) { 
+                alert("Enter Full Name"); 
+                btn.innerText = "CREATE ACCOUNT";
+                btn.disabled = false;
+                return; 
+            }
             const res = await createUserWithEmailAndPassword(auth, email, pass);
             await setDoc(doc(db, "users", res.user.uid), { name: fullName, email: email });
             alert("Account Created!");
         }
-    } catch (e) { alert(e.message); btn.innerText = isLogin ? "SIGN IN" : "CREATE ACCOUNT"; }
+    } catch (e) { 
+        alert(e.message); 
+    } finally {
+        btn.innerText = window.isLogin ? "SIGN IN" : "CREATE ACCOUNT"; 
+        btn.disabled = false;
+    }
   };
 
-  if (user && user.email === "your-admin-email@gmail.com") {
-    // Create an Admin button dynamically
-    const adminBtn = document.createElement('button');
-    adminBtn.innerText = "OPEN ADMIN PANEL";
-    adminBtn.className = "action-btn";
-    adminBtn.style.marginTop = "20px";
-    adminBtn.onclick = () => window.location.href = 'admin.html';
-    document.getElementById('dashboardContainer').appendChild(adminBtn);
-}
   async function loadUserOrders(email) {
     const list = document.getElementById('ordersList');
-    list.innerHTML = "<p>Loading...</p>";
-    const q = query(collection(db, "orders"), where("customerEmail", "==", email));
-    const snap = await getDocs(q);
-    list.innerHTML = snap.empty ? "<p>No orders yet.</p>" : "";
-    snap.forEach(d => {
-        const o = d.data();
-        list.innerHTML += `<div class="order-card">
-            <div><h4>Order #${d.id.substring(0,6)}</h4><p style="color:#00ff4c;">Rs. ${o.total}</p></div>
-            <div style="text-align:right;"><span class="status-badge">${o.status || 'Pending'}</span><br><br>
-            <a href="${o.trackingLink || '#'}" class="tracking-btn">TRACK</a></div></div>`;
-    });
+    list.innerHTML = "<p style='color:#666;'>Checking orders...</p>";
+    
+    try {
+        const q = query(collection(db, "orders"), where("customerEmail", "==", email));
+        const snap = await getDocs(q);
+        list.innerHTML = snap.empty ? "<p style='color:#666;'>No orders yet.</p>" : "";
+        
+        snap.forEach(d => {
+            const o = d.data();
+            list.innerHTML += `
+                <div class="order-card">
+                    <div>
+                        <h4>Order #${d.id.substring(0,6)}</h4>
+                        <p style="color:#00ff4c; font-weight:700;">Rs. ${o.total}</p>
+                    </div>
+                    <div style="text-align:right;">
+                        <span class="status-badge" style="background:${o.status === 'Shipped' ? '#00ff4c' : '#ffaa00'}">
+                            ${o.status || 'Pending'}
+                        </span><br><br>
+                        <a href="${o.trackingLink || '#'}" class="tracking-btn" target="_blank" 
+                           style="display: ${o.trackingLink ? 'inline-block' : 'none'}">TRACK</a>
+                    </div>
+                </div>`;
+        });
+    } catch (err) {
+        list.innerHTML = "<p style='color:red;'>Error loading orders.</p>";
+    }
   }
 
   window.logout = () => signOut(auth);
-  window.isLogin = true;
+
   window.toggleAuthMode = () => {
-    isLogin = !isLogin;
-    document.getElementById('authTitle').innerText = isLogin ? "LOGIN" : "REGISTER";
-    document.getElementById('mainAuthBtn').innerText = isLogin ? "SIGN IN" : "CREATE ACCOUNT";
-    document.getElementById('registerFields').style.display = isLogin ? "none" : "block";
-    document.getElementById('authToggleText').innerHTML = isLogin ? 
+    window.isLogin = !window.isLogin;
+    document.getElementById('authTitle').innerText = window.isLogin ? "LOGIN" : "REGISTER";
+    document.getElementById('mainAuthBtn').innerText = window.isLogin ? "SIGN IN" : "CREATE ACCOUNT";
+    document.getElementById('registerFields').style.display = window.isLogin ? "none" : "block";
+    document.getElementById('authToggleText').innerHTML = window.isLogin ? 
         'New to Ananmanan? <span onclick="toggleAuthMode()" class="neon-link">Create Account</span>' : 
         'Already a member? <span onclick="toggleAuthMode()" class="neon-link">Login Now</span>';
   };
