@@ -22,19 +22,21 @@ function loadLiveProducts() {
     const shopGrid = document.querySelector('.shop-grid');
     if (!shopGrid) return;
 
-    // Detect which page we are on
-    const path = window.location.pathname;
-    let category = "";
-    if(path.includes("men.html")) category = "Men";
-    if(path.includes("Women.html")) category = "Women";
-    if(path.includes("acc.html")) category = "Accessories";
+    // 1. Detect which category to show based on the page name
+    const pageName = window.location.pathname.toLowerCase();
+    let filterCategory = "";
+    
+    if (pageName.includes("men.html")) filterCategory = "Men";
+    else if (pageName.includes("women.html")) filterCategory = "Women";
+    else if (pageName.includes("acc.html")) filterCategory = "Accessories";
 
+    // 2. Listen to Firebase and filter products
     onSnapshot(collection(db, "products"), (snapshot) => {
         products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // Filter products based on category
-        let displayProducts = category 
-            ? products.filter(p => p.category === category) 
+        // Only show products matching the page category (if a category is set)
+        let displayProducts = filterCategory 
+            ? products.filter(p => p.category === filterCategory) 
             : products;
 
         shopGrid.innerHTML = displayProducts.map(p => `
@@ -199,4 +201,5 @@ window.toggleSizeChart = function() {
   const chart = document.getElementById("sizeChartContainer");
   if (chart) chart.classList.toggle("active");
 }
+
 
