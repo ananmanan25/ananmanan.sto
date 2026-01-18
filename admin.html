@@ -101,7 +101,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, addDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCYLMXUCC6t-zT4CeFHBG7OMMwUNDhA8i0",
@@ -132,6 +132,7 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
         loadProducts();
+        loadOrders();
     } else {
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('dashboard').style.display = 'none';
@@ -142,27 +143,51 @@
   async function loadProducts() {
     const list = document.getElementById('productList');
     list.innerHTML = "<p>Loading inventory...</p>";
-    const snap = await getDocs(collection(db, "products"));
     
-    list.innerHTML = "";
-    snap.forEach(d => {
-        const p = d.data();
-        list.innerHTML += `
-        <div class="card">
-            <img src="${p.images ? p.images[0] : ''}" style="width:50px; height:50px; object-fit:cover; float:left; margin-right:10px; border-radius:5px;">
-            <input type="text" id="name-${d.id}" value="${p.name}" style="width: calc(100% - 70px);">
-            <div style="display:flex; gap:5px;">
-                <input type="number" id="price-${d.id}" value="${p.price}">
-                <select id="cat-${d.id}" style="font-size:10px;">
-                    <option ${p.category=='Men'?'selected':''}>Men</option>
-                    <option ${p.category=='Women'?'selected':''}>Women</option>
-                    <option ${p.category=='Accessories'?'selected':''}>Accessories</option>
+    onSnapshot(collection(db, "products"), (snapshot) => {
+        list.innerHTML = "";
+        snapshot.forEach(d => {
+            const p = d.data();
+            list.innerHTML += `
+            <div class="card">
+                <img src="${p.images ? p.images[0] : ''}" style="width:50px; height:50px; object-fit:cover; float:left; margin-right:10px; border-radius:5px;">
+                <input type="text" id="name-${d.id}" value="${p.name}" style="width: calc(100% - 70px);">
+                <div style="display:flex; gap:5px;">
+                    <input type="number" id="price-${d.id}" value="${p.price}">
+                    <select id="cat-${d.id}">
+                        <option value="Men" ${p.category=='Men'?'selected':''}>Men</option>
+                        <option value="Women" ${p.category=='Women'?'selected':''}>Women</option>
+                        <option value="Accessories" ${p.category=='Accessories'?'selected':''}>Acc</option>
+                    </select>
+                </div>
+                <input type="text" id="code-${d.id}" value="${p.code || ''}" placeholder="Item Code">
+                <button class="btn btn-save" onclick="updateProduct('${d.id}')">SAVE</button>
+                <button class="btn btn-del" onclick="deleteItem('products', '${d.id}')">DEL</button>
+                <div style="clear:both;"></div>
+            </div>`;
+        });
+    });
+  }
+
+  // --- LOAD ORDERS ---
+  async function loadOrders() {
+    const list = document.getElementById('orderList');
+    onSnapshot(collection(db, "orders"), (snapshot) => {
+        list.innerHTML = snapshot.empty ? "<p>No orders yet.</p>" : "";
+        snapshot.forEach(d => {
+            const o = d.data();
+            list.innerHTML += `
+            <div class="card">
+                <strong>${o.customerName || 'No Name'}</strong> - Rs. ${o.total}
+                <p style="font-size:11px; color:#888;">${o.customerCity} | ${o.customerPhone}</p>
+                <select id="status-${d.id}" style="font-size:12px;">
+                    <option ${o.status=='Pending'?'selected':''}>Pending</option>
+                    <option ${o.status=='Shipped'?'selected':''}>Shipped</option>
+                    <option ${o.status=='Delivered'?'selected':''}>Delivered</option>
                 </select>
-            </div>
-            <button class="btn btn-save" onclick="updateProduct('${d.id}')">SAVE CHANGES</button>
-            <button class="btn btn-del" onclick="deleteItem('products', '${d.id}')">DELETE</button>
-            <div style="clear:both;"></div>
-        </div>`;
+                <button class="btn btn-save" onclick="updateOrder('${d.id}')">UPDATE STATUS</button>
+            </div>`;
+        });
     });
   }
 
@@ -171,8 +196,15 @@
     const name = document.getElementById(`name-${id}`).value;
     const price = Number(document.getElementById(`price-${id}`).value);
     const category = document.getElementById(`cat-${id}`).value;
-    await updateDoc(doc(db, "products", id), { name, price, category });
-    alert("Product Updated!");
+    const code = document.getElementById(`code-${id}`).value;
+    await updateDoc(doc(db, "products", id), { name, price, category, code });
+    alert("Saved!");
+  };
+
+  window.updateOrder = async (id) => {
+    const status = document.getElementById(`status-${id}`).value;
+    await updateDoc(doc(db, "orders", id), { status: status });
+    alert("Order Status Updated!");
   };
 
   window.createNewProduct = async () => {
@@ -182,14 +214,11 @@
     const category = document.getElementById('newCategory').value;
     const img = document.getElementById('newImg').value;
     
-    if(!name || !price) { alert("Name and Price are required"); return; }
+    if(!name || !price) { alert("Fill all fields"); return; }
 
     try {
         await addDoc(collection(db, "products"), {
-            name: name, 
-            price: price, 
-            code: code,
-            category: category,
+            name, price, code, category,
             images: [img],
             createdAt: new Date()
         });
@@ -200,9 +229,8 @@
   };
 
   window.deleteItem = async (col, id) => {
-    if(confirm("Are you sure?")) {
+    if(confirm("Confirm Delete?")) {
         await deleteDoc(doc(db, col, id));
-        loadProducts();
     }
   };
 
@@ -210,7 +238,7 @@
     document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    if(tabId === 'products') loadProducts();
+    event.target.classList.add('active');
   };
 </script>
 </body>
