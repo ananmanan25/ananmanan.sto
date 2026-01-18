@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ANANMANAN | My Account</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        .account-wrapper { padding: 150px 5% 100px; min-height: 80vh; display: flex; flex-direction: column; align-items: center; }
+        .auth-card { max-width: 450px; width: 100%; padding: 40px; }
+        .dashboard-container { width: 100%; max-width: 1000px; display: none; }
+        .order-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 25px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .status-badge { background: #00ff4c; color: black; padding: 5px 12px; border-radius: 50px; font-size: 12px; font-weight: 700; }
+        .tracking-btn { border: 1px solid #00ff4c; color: #00ff4c; padding: 10px 20px; border-radius: 30px; text-decoration: none; font-size: 13px; transition: 0.3s; }
+        .tracking-btn:hover { background: #00ff4c; color: black; }
+        .form-footer { margin-top: 20px; text-align: center; font-size: 14px; color: #888; }
+        .neon-link { color: #00ff4c; cursor: pointer; font-weight: 700; margin-left: 5px; }
+        .password-wrapper { position: relative; width: 100%; }
+        .password-wrapper input { padding-right: 50px !important; }
+        .toggle-password { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; display: flex; }
+    </style>
+</head>
+<body>
+
+<header class="glass-nav">
+    <div class="logo"><a href="index.html"><img src="i/an.png" width="30px"></a></div>
+    <nav id="navLinks">
+        <a href="index.html">Home</a>
+        <a href="vision.html">Vision</a>
+        <a href="men.html">Men</a>
+        <a href="women.html">Women</a>
+        <a href="acc.html">Accessories</a>
+    </nav>
+    <div class="nav-right">
+        <button class="nav-cart-btn" onclick="location.href='index.html'">BACK TO SHOP</button>
+    </div>
+</header>
+
+<main class="account-wrapper">
+    <div id="authContainer" class="product-card glow-border auth-card">
+        <h2 id="authTitle" style="margin-bottom: 30px;">LOGIN</h2>
+        
+        <div id="registerFields" style="display: none;">
+            <input type="text" id="regName" placeholder="Full Name" class="dark-select">
+        </div>
+        
+        <input type="email" id="authEmail" placeholder="Email Address" class="dark-select">
+        
+        <div class="password-wrapper">
+            <input type="password" id="authPass" placeholder="Password" class="dark-select">
+            <span class="toggle-password" onclick="togglePasswordVisibility()">
+                <svg id="eyeIcon" width="20" height="20" fill="#888" viewBox="0 0 16 16">
+                    <path d="M16 8s-3-5.5-8-5.5S0 8s0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                </svg>
+            </span>
+        </div>
+        
+        <button class="action-btn" id="mainAuthBtn" onclick="handleAuth()">SIGN IN</button>
+        
+        <div class="form-footer">
+            <p id="authToggleText">New to Ananmanan? <span onclick="toggleAuthMode()" class="neon-link">Create Account</span></p>
+        </div>
+    </div>
+
+    <div id="dashboardContainer" class="dashboard-container">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 40px; border-bottom: 1px solid #222; padding-bottom: 20px;">
+            <div>
+                <p style="color: #666; font-size: 14px;">Welcome back,</p>
+                <h1 id="clientDisplayName" style="font-size: 40px; color: #00ff4c;">EXPLORER</h1>
+            </div>
+            <button class="remove-btn" onclick="logout()">LOGOUT</button>
+        </div>
+        <h3 style="margin-bottom: 20px;">ORDER HISTORY</h3>
+        <div id="ordersList"></div>
+    </div>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCYLMXUCC6t-zT4CeFHBG7OMMwUNDhA8i0",
+    authDomain: "ananmanan-2412c.firebaseapp.com",
+    projectId: "ananmanan-2412c",
+    storageBucket: "ananmanan-2412c.firebasestorage.app",
+    messagingSenderId: "244268274543",
+    appId: "1:244268274543:web:10d1e2ccb230d660d8ce9a",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.handleAuth = async () => {
+    const email = document.getElementById('authEmail').value;
+    const pass = document.getElementById('authPass').value;
+    const btn = document.getElementById('mainAuthBtn');
+
+    try {
+        btn.innerText = "PROCESSING..."; // Processing state
+        if (isLogin) {
+            await signInWithEmailAndPassword(auth, email, pass);
+        } else {
+            const fullName = document.getElementById('regName').value;
+            if (!fullName) { alert("Enter Full Name"); btn.innerText="CREATE"; return; }
+            const res = await createUserWithEmailAndPassword(auth, email, pass);
+            await setDoc(doc(db, "users", res.user.uid), { name: fullName, email: email });
+            alert("Account Created!");
+        }
+    } catch (e) { alert(e.message); btn.innerText = isLogin ? "SIGN IN" : "CREATE ACCOUNT"; }
+  };
+
+  if (user && user.email === "your-admin-email@gmail.com") {
+    // Create an Admin button dynamically
+    const adminBtn = document.createElement('button');
+    adminBtn.innerText = "OPEN ADMIN PANEL";
+    adminBtn.className = "action-btn";
+    adminBtn.style.marginTop = "20px";
+    adminBtn.onclick = () => window.location.href = 'admin.html';
+    document.getElementById('dashboardContainer').appendChild(adminBtn);
+}
+  async function loadUserOrders(email) {
+    const list = document.getElementById('ordersList');
+    list.innerHTML = "<p>Loading...</p>";
+    const q = query(collection(db, "orders"), where("customerEmail", "==", email));
+    const snap = await getDocs(q);
+    list.innerHTML = snap.empty ? "<p>No orders yet.</p>" : "";
+    snap.forEach(d => {
+        const o = d.data();
+        list.innerHTML += `<div class="order-card">
+            <div><h4>Order #${d.id.substring(0,6)}</h4><p style="color:#00ff4c;">Rs. ${o.total}</p></div>
+            <div style="text-align:right;"><span class="status-badge">${o.status || 'Pending'}</span><br><br>
+            <a href="${o.trackingLink || '#'}" class="tracking-btn">TRACK</a></div></div>`;
+    });
+  }
+
+  window.logout = () => signOut(auth);
+  window.isLogin = true;
+  window.toggleAuthMode = () => {
+    isLogin = !isLogin;
+    document.getElementById('authTitle').innerText = isLogin ? "LOGIN" : "REGISTER";
+    document.getElementById('mainAuthBtn').innerText = isLogin ? "SIGN IN" : "CREATE ACCOUNT";
+    document.getElementById('registerFields').style.display = isLogin ? "none" : "block";
+    document.getElementById('authToggleText').innerHTML = isLogin ? 
+        'New to Ananmanan? <span onclick="toggleAuthMode()" class="neon-link">Create Account</span>' : 
+        'Already a member? <span onclick="toggleAuthMode()" class="neon-link">Login Now</span>';
+  };
+
+  window.togglePasswordVisibility = () => {
+    const input = document.getElementById('authPass');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  };
+</script>
+</body>
+</html>

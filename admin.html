@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ANANMANAN | Admin Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container { padding: 120px 5%; }
+        .order-row { 
+            background: rgba(255,255,255,0.05); 
+            margin-bottom: 15px; 
+            padding: 20px; 
+            border-radius: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr 1fr;
+            align-items: center;
+            gap: 20px;
+        }
+        .admin-input {
+            background: #111;
+            border: 1px solid #333;
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .update-btn {
+            background: #00ff4c;
+            color: black;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="adminAccess" class="admin-container" style="display:none;">
+    <h1 style="color:#00ff4c; margin-bottom: 30px;">ORDER MANAGEMENT</h1>
+    <div id="allOrdersList">
+        </div>
+</div>
+
+<div id="denied" class="admin-container" style="text-align:center;">
+    <h1>Access Denied</h1>
+    <p>Only authorized admins can view this page.</p>
+    <a href="account.html" style="color:#00ff4c;">Login as Admin</a>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // USE YOUR CONFIG HERE
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "your-app.firebaseapp.com",
+    projectId: "your-app",
+    storageBucket: "your-app.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const ADMIN_EMAIL = "s.l.bumbra@gmail.com"; // CHANGE THIS TO YOUR EMAIL
+
+  onAuthStateChanged(auth, (user) => {
+    if (user && user.email === ADMIN_EMAIL) {
+        document.getElementById('adminAccess').style.display = 'block';
+        document.getElementById('denied').style.display = 'none';
+        loadAllOrders();
+    }
+  });
+
+  async function loadAllOrders() {
+    const list = document.getElementById('allOrdersList');
+    const querySnapshot = await getDocs(collection(db, "orders"));
+    
+    list.innerHTML = "";
+    querySnapshot.forEach((orderDoc) => {
+        const data = orderDoc.data();
+        list.innerHTML += `
+            <div class="order-row">
+                <div><strong>${data.customerEmail}</strong></div>
+                <div>Rs. ${data.total}</div>
+                <div>
+                    <input type="text" id="track-${orderDoc.id}" 
+                           placeholder="Paste Tracking Link Here" 
+                           value="${data.trackingLink || ''}" 
+                           class="admin-input">
+                </div>
+                <button class="update-btn" onclick="updateTracking('${orderDoc.id}')">SAVE</button>
+            </div>
+        `;
+    });
+  }
+
+  window.updateTracking = async (id) => {
+    const link = document.getElementById(`track-${id}`).value;
+    const orderRef = doc(db, "orders", id);
+    await updateDoc(orderRef, { trackingLink: link, status: "Shipped" });
+    alert("Tracking Updated! Customer can now see it.");
+  };
+</script>
+</body>
+</html>
