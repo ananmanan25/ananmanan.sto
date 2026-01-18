@@ -20,27 +20,36 @@ let products = [];
 
 function loadLiveProducts() {
     const shopGrid = document.querySelector('.shop-grid');
-    
-    // This listens for changes in your Firebase Database
+    if (!shopGrid) return;
+
+    // Detect which page we are on
+    const path = window.location.pathname;
+    let category = "";
+    if(path.includes("men.html")) category = "Men";
+    if(path.includes("Women.html")) category = "Women";
+    if(path.includes("acc.html")) category = "Accessories";
+
     onSnapshot(collection(db, "products"), (snapshot) => {
         products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        if (shopGrid) {
-            shopGrid.innerHTML = products.map(p => `
-                <div class="product-card" onclick="openProductModal('${p.name}', ${p.price}, ${JSON.stringify(p.images).replace(/"/g, '&quot;')}, '${p.code}')">
-                    <div class="image-box">
-                        <img src="${p.images[0]}" alt="${p.name}">
-                    </div>
-                    <div class="info">
-                        <h3>${p.name}</h3>
-                        <div class="price">Rs. ${p.price}</div>
-                    </div>
+        // Filter products based on category
+        let displayProducts = category 
+            ? products.filter(p => p.category === category) 
+            : products;
+
+        shopGrid.innerHTML = displayProducts.map(p => `
+            <div class="product-card" onclick="openProductModal('${p.name}', ${p.price}, ${JSON.stringify(p.images).replace(/"/g, '&quot;')}, '${p.code}')">
+                <div class="image-box">
+                    <img src="${p.images[0]}" alt="${p.name}">
                 </div>
-            `).join('');
-        }
+                <div class="info">
+                    <h3>${p.name}</h3>
+                    <div class="price">Rs. ${p.price}</div>
+                </div>
+            </div>
+        `).join('');
     });
 }
-
 /* ===================== GLOBAL VARIABLES ===================== */
 const cursor = document.getElementById("custom-cursor");
 const dot = document.getElementById("cursor-dot");
@@ -190,3 +199,4 @@ window.toggleSizeChart = function() {
   const chart = document.getElementById("sizeChartContainer");
   if (chart) chart.classList.toggle("active");
 }
+
